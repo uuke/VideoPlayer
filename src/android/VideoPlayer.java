@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,7 +20,9 @@ import org.json.JSONException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
+import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -37,8 +40,7 @@ public class VideoPlayer extends CordovaPlugin {
         try {
             if (action.equals("playVideo")) {
                 playVideo(args.getString(0));
-            }
-            else {
+            } else {
                 status = PluginResult.Status.INVALID_ACTION;
             }
             callbackContext.sendPluginResult(new PluginResult(status, result));
@@ -51,16 +53,16 @@ public class VideoPlayer extends CordovaPlugin {
     }
 
     private void playVideo(String url) throws IOException {
-    	if (url.contains("bit.ly/") || url.contains("goo.gl/") || url.contains("tinyurl.com/") || url.contains("youtu.be/")) {
-			//support for google / bitly / tinyurl / youtube shortens
-			URLConnection con = new URL(url).openConnection();
-			con.connect();
-			InputStream is = con.getInputStream();
-			//new redirected url
-	        url = con.getURL().toString();
-			is.close();
-		}
-        
+        if (url.contains("bit.ly/") || url.contains("goo.gl/") || url.contains("tinyurl.com/") || url.contains("youtu.be/")) {
+            //support for google / bitly / tinyurl / youtube shortens
+            URLConnection con = new URL(url).openConnection();
+            con.connect();
+            InputStream is = con.getInputStream();
+            //new redirected url
+            url = con.getURL().toString();
+            is.close();
+        }
+
         // Create URI
         Uri uri = Uri.parse(url);
 
@@ -75,11 +77,11 @@ public class VideoPlayer extends CordovaPlugin {
                 intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse("market://details?id=com.google.android.youtube"));
             }
-        } else if(url.contains(ASSETS)) {
+        } else if (url.contains(ASSETS)) {
             // get file path in assets folder
             String filepath = url.replace(ASSETS, "");
             // get actual filename from path as command to write to internal storage doesn't like folders
-            String filename = filepath.substring(filepath.lastIndexOf("/")+1, filepath.length());
+            String filename = filepath.substring(filepath.lastIndexOf("/") + 1, filepath.length());
 
             // Don't copy the file if it already exists
             File fp = new File(this.cordova.getActivity().getFilesDir() + "/" + filename);
@@ -97,6 +99,14 @@ public class VideoPlayer extends CordovaPlugin {
             // Display video player
             intent = new Intent(Intent.ACTION_VIEW);
             intent.setDataAndType(uri, "video/*");
+
+            PackageManager packageManager = this.cordova.getActivity().getPackageManager();
+            List<ResolveInfo> infoList = packageManager.queryIntentActivities(
+                    intent, PackageManager.MATCH_DEFAULT_ONLY);
+            if (!infoList.isEmpty()) {
+                ResolveInfo info = infoList.get(0);
+                intent.setClassName(info.activityInfo.packageName, info.activityInfo.name);
+            }
         }
 
         this.cordova.getActivity().startActivity(intent);
@@ -117,7 +127,7 @@ public class VideoPlayer extends CordovaPlugin {
         in.close();
         out.close();
     }
-    
+
     private boolean isYouTubeInstalled() {
         PackageManager pm = this.cordova.getActivity().getPackageManager();
         try {
