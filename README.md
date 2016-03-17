@@ -5,6 +5,8 @@ Video Player Plugin for Cordova 3.3+ Android
 
 Updated version of http://github.com/macdonst/VideoPlayer by Simon MacDonald
 
+feature: no chooser dialog, always choose the first video player to play videos
+
 Installation
 ===========
 
